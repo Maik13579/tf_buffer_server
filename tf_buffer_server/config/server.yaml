@@ -1,0 +1,8 @@
+/**:
+  ros__parameters:
+    buffer.cache_time_seconds: 10.0
+    requests.max_timeout_seconds: 5.0
+    requests.max_pending: 256
+    subscriptions.tf_depth: 100
+    subscriptions.tf_static_depth: 100
+    listener.spin_thread: false

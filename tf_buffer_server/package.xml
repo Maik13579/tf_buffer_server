@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>tf_buffer_server</name>
+  <version>0.1.0</version>
+  <description>Composable TF buffer server with deferred services and optional lifecycle.</description>
+  <maintainer email="maik.knof@gmx.de">Maik Knof</maintainer>
+  <license>Apache-2.0</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_components</depend>
+  <depend>rclcpp_lifecycle</depend>
+  <depend>rcl_interfaces</depend>
+  <depend>builtin_interfaces</depend>
+  <depend>geometry_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_msgs</depend>
+  <depend>tf_buffer_server_interfaces</depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <test_depend>ament_cmake_gtest</test_depend>
+  <test_depend>launch_testing_ament_cmake</test_depend>
+  <test_depend>launch_testing_ros</test_depend>
+  <test_depend>rclpy</test_depend>
+  <test_depend>composition_interfaces</test_depend>
+  <test_depend>rosgraph_msgs</test_depend>
+  <test_depend>lifecycle_msgs</test_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

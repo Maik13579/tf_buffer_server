@@ -1,0 +1,15 @@
+# Copyright 2026 Maik Knof
+# SPDX-License-Identifier: Apache-2.0
+
+# Transform from source_frame into target_frame.
+string target_frame
+string source_frame
+# ROS timestamp; zero selects the latest common time.
+builtin_interfaces/Time time
+# Maximum elapsed real time to wait. Zero checks immediately.
+# Must be nonnegative and <= requests.max_timeout_seconds.
+builtin_interfaces/Duration timeout
+---
+tf_buffer_server_interfaces/BufferStatus status
+# Only use the result when status.code == BufferStatus.OK.
+geometry_msgs/TransformStamped transform

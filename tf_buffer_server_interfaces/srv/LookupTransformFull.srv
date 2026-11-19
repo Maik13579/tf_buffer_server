@@ -1,0 +1,18 @@
+# Copyright 2026 Maik Knof
+# SPDX-License-Identifier: Apache-2.0
+
+# Transform from source at source_time into target at target_time.
+string target_frame
+# Zero selects latest for this leg of the lookup.
+builtin_interfaces/Time target_time
+string source_frame
+builtin_interfaces/Time source_time
+# Frame assumed constant between source_time and target_time.
+string fixed_frame
+# Maximum elapsed real time to wait. Zero checks immediately.
+# Must be nonnegative and <= requests.max_timeout_seconds.
+builtin_interfaces/Duration timeout
+---
+tf_buffer_server_interfaces/BufferStatus status
+# Only use the result when status.code == BufferStatus.OK.
+geometry_msgs/TransformStamped transform

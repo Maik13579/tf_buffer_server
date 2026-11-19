@@ -1,0 +1,45 @@
+name: Build and run ROS2 tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        rosdistro: [humble, jazzy, lyrical]
+    runs-on: ubuntu-latest
+    container:
+      image: ros:${{ matrix.rosdistro }}-ros-base
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: src/tf_buffer_server
+      - name: Prepare workspace
+        run: |
+          mkdir -p /root/ros2_ws
+          ln -s "$GITHUB_WORKSPACE/src" /root/ros2_ws/src
+      - name: Install dependencies
+        run: rosdep update --include-eol-distros && apt-get update && rosdep install --from-paths /root/ros2_ws/src -riy --rosdistro ${{ matrix.rosdistro }}
+      - name: Build
+        working-directory: /root/ros2_ws
+        shell: bash
+        run: |
+          source /opt/ros/${ROS_DISTRO}/setup.bash
+          export CMAKE_BUILD_PARALLEL_LEVEL=4 MAKEFLAGS=-j4
+          colcon build --base-paths /root/ros2_ws/src --event-handlers console_direct+ --cmake-args -DCMAKE_BUILD_TYPE=Release --executor sequential
+      - name: Test
+        working-directory: /root/ros2_ws
+        shell: bash
+        run: |
+          source /opt/ros/${ROS_DISTRO}/setup.bash
+          source install/setup.bash
+          colcon test --base-paths /root/ros2_ws/src --event-handlers console_direct+
+      - name: Test results
+        if: always()
+        working-directory: /root/ros2_ws
+        run: colcon test-result --verbose

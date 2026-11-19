@@ -1,0 +1,8 @@
+# Copyright 2026 Maik Knof
+# SPDX-License-Identifier: Apache-2.0
+
+---
+tf_buffer_server_interfaces/BufferStatus status
+# Sorted unique names known to TF, including names retained after clear.
+# Presence does not guarantee a usable transform.
+string[] frames

@@ -1,0 +1,19 @@
+# Copyright 2026 Maik Knof
+# SPDX-License-Identifier: Apache-2.0
+
+uint8 OK=0
+uint8 LOOKUP_ERROR=1
+uint8 CONNECTIVITY_ERROR=2
+uint8 EXTRAPOLATION_ERROR=3
+uint8 INVALID_ARGUMENT=4
+uint8 TIMEOUT=5
+uint8 TRANSFORM_ERROR=6
+uint8 BUSY=7
+uint8 CLEARED=8
+uint8 INACTIVE=9
+uint8 SHUTTING_DOWN=10
+uint8 CLOCK_RESET=11
+uint8 INTERNAL_ERROR=12
+
+uint8 code
+string message
