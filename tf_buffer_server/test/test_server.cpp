@@ -13,6 +13,7 @@ TEST_P(ServerTest, LookupInterpolationGraphAndClear)
   publish(transform("map", "base", 12, 3));
   publish(transform("base", "laser", 0, 2), true);
   wait_available(query("laser"));
+  static_.reset();  // Clear must preserve cached static TF without a live broadcaster.
   auto request = query();
   request.time.sec = 11;
   auto result = call<srv::LookupTransform>("lookup_transform", request);
@@ -198,6 +199,9 @@ TEST_P(ServerTest, ClockResetCancelsPending)
   message.clock.sec = 20;
   clock->publish(message);
   wait([&]() {return ordinary_->now().seconds() == 20.0;});
+  publish(transform("map", "sensor", 0, 3), true);
+  wait_available(query("sensor"));
+  static_.reset();
   call<srv::GetFrames>("get_frames");
   auto connection = client<srv::LookupTransform>("lookup_transform");
   auto request = query();
@@ -209,6 +213,9 @@ TEST_P(ServerTest, ClockResetCancelsPending)
   clock->publish(message);
   ASSERT_EQ(future.wait_for(3s), std::future_status::ready);
   EXPECT_EQ(future.get()->status.code, Status::CLOCK_RESET);
+  auto retained = call<srv::LookupTransform>("lookup_transform", query("sensor"));
+  ASSERT_EQ(retained->status.code, Status::OK) << retained->status.message;
+  EXPECT_DOUBLE_EQ(retained->transform.transform.translation.x, 3.0);
 }
 
 TEST(Settings, RejectInvalidParameters)

@@ -13,7 +13,7 @@
 #include <vector>
 #include <rclcpp/rclcpp.hpp>
 #include <tf2_ros/buffer.hpp>
-#include <tf2_ros/transform_listener.hpp>
+#include "transform_listener.hpp"
 #include <tf2_msgs/srv/frame_graph.hpp>
 #include <std_srvs/srv/trigger.hpp>
 #include <tf_buffer_server_interfaces/msg/buffer_status.hpp>
@@ -116,9 +116,8 @@ private:
   template<typename NodeT>
   void listen(NodeT * node)
   {
-    listener_ = std::make_unique<tf2_ros::TransformListener>(
-      *buffer_, node, settings_.spin_thread, tf2_ros::DynamicListenerQoS(settings_.tf_depth),
-      tf2_ros::StaticListenerQoS(settings_.static_depth));
+    listener_ = std::make_unique<TransformListener>(
+      *buffer_, node, settings_.spin_thread, settings_.tf_depth, settings_.static_depth);
   }
 
   using Reply = std::function<void(const Status &, const geometry_msgs::msg::TransformStamped &)>;
@@ -186,9 +185,9 @@ private:
   Settings settings_;
   rclcpp::Logger logger_;
   rclcpp::Clock::SharedPtr clock_;
-  std::shared_ptr<tf2_ros::Buffer> buffer_;
+  std::shared_ptr<TransformBuffer> buffer_;
   std::shared_ptr<SteadyTimers> timers_;
-  std::unique_ptr<tf2_ros::TransformListener> listener_;
+  std::unique_ptr<TransformListener> listener_;
   std::vector<rclcpp::ServiceBase::SharedPtr> services_;
   std::list<std::shared_ptr<Pending>> pending_;
   bool active_ = false;

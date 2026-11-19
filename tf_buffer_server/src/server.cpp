@@ -12,7 +12,7 @@ Server::Server(
   rclcpp::node_interfaces::NodeTimersInterface::SharedPtr timers,
   const Settings & settings, rclcpp::Logger logger)
 : settings_(settings), logger_(logger), clock_(std::move(clock)),
-  buffer_(std::make_shared<tf2_ros::Buffer>(clock_, tf2::durationFromSec(settings.cache_time))),
+  buffer_(std::make_shared<TransformBuffer>(clock_, tf2::durationFromSec(settings.cache_time))),
   timers_(std::make_shared<SteadyTimers>(base, timers))
 {
   buffer_->setCreateTimerInterface(timers_);

@@ -19,6 +19,7 @@ TEST_P(LifecycleTest, LifecycleReceptionServicesAndHistory)
   publish(transform("map", "base", 10, 4));
   publish(transform("base", "laser", 0, 1), true);
   wait_available(query("laser"));
+  static_.reset();  // Reactivation must preserve static TF without rediscovery.
   auto connection = client<srv::LookupTransform>("lookup_transform");
   auto request = query("missing");
   request.timeout.sec = 1;
