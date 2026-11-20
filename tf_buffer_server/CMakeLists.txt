@@ -11,6 +11,9 @@ foreach(dependency IN LISTS dependencies)
 endforeach()
 add_library(${PROJECT_NAME} SHARED src/components.cpp src/server.cpp src/requests.cpp src/transform_buffer.cpp)
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
+if(tf2_ros_VERSION VERSION_GREATER_EQUAL "0.45.10")
+  target_compile_definitions(${PROJECT_NAME} PRIVATE TF_BUFFER_TIMER_NODE_INTERFACES)
+endif()
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
 target_link_libraries(${PROJECT_NAME} PUBLIC

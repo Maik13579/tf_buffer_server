@@ -81,8 +81,13 @@ struct Client::Impl
   template<typename ServiceT>
   typename rclcpp::Client<ServiceT>::SharedPtr make(const std::string & name)
   {
+#ifdef TF_BUFFER_CLIENT_LEGACY_QOS
+    const auto qos = rclcpp::ServicesQoS().get_rmw_qos_profile();
+#else
+    const auto qos = rclcpp::ServicesQoS();
+#endif
     return rclcpp::create_client<ServiceT>(interfaces.base, interfaces.graph, interfaces.services,
-      name, rmw_qos_profile_services_default, options.callback_group);
+      name, qos, options.callback_group);
   }
 };
 
@@ -100,8 +105,9 @@ Client::Client(NodeInterfaces interfaces, std::string server, ClientOptions opti
   impl_->interfaces = std::move(interfaces);
   impl_->options = options;
   if (!impl_->options.callback_group) {
-    impl_->options.callback_group = impl_->interfaces.base->create_callback_group(
-      rclcpp::CallbackGroupType::MutuallyExclusive, true);
+    // Humble's executor caches raw guard-condition pointers for callback groups.
+    // Borrow the node-owned group so destroying a temporary client cannot invalidate them.
+    impl_->options.callback_group = impl_->interfaces.base->get_default_callback_group();
   }
   impl_->frames = impl_->make<srv::GetFrames>(server + "/get_frames");
   impl_->graph = impl_->make<tf2_msgs::srv::FrameGraph>(server + "/get_frame_graph");

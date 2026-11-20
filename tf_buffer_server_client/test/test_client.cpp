@@ -82,10 +82,12 @@ protected:
       executor_ =
         std::make_unique<rclcpp::executors::MultiThreadedExecutor>(rclcpp::ExecutorOptions(), 3);
     } else {executor_ = std::make_unique<rclcpp::executors::SingleThreadedExecutor>();}
+    client_group_ = node_->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
     executor_->add_node(node_);
     executor_->add_node(server_);
     tf_buffer_server_client::ClientOptions settings;
     settings.response_margin = 500ms;
+    settings.callback_group = client_group_;
     client_ = std::make_unique<Client>(node_, "buffer", settings);
     thread_ = std::thread([this]() {executor_->spin();});
     ASSERT_TRUE(client_->wait_for_server(5s));
@@ -111,6 +113,7 @@ protected:
   std::unique_ptr<Client> client_;
   std::unique_ptr<rclcpp::Executor> executor_;
   std::vector<rclcpp::ServiceBase::SharedPtr> services_;
+  rclcpp::CallbackGroup::SharedPtr client_group_;
   rclcpp::TimerBase::SharedPtr timer_;
   std::thread thread_;
 };
@@ -158,6 +161,27 @@ TEST_P(Clients, CheckedErrorsAndAvailability)
   Client absent(node_, "absent");
   EXPECT_FALSE(absent.wait_for_server(10ms));
   EXPECT_THROW(absent.get_frames_async().get(), ClientError);
+}
+
+
+TEST_P(Clients, TemporaryClientsReuseNodeOwnedCallbackGroup)
+{
+  auto group_count = [this]() {
+      size_t count = 0;
+      node_->get_node_base_interface()->for_each_callback_group(
+        [&count](rclcpp::CallbackGroup::SharedPtr) {++count;});
+      return count;
+    };
+  const auto before = group_count();
+  for (int index = 0; index < 20; ++index) {
+    {
+      Client temporary(node_, "absent");
+      EXPECT_EQ(group_count(), before);
+      EXPECT_THROW(temporary.get_frames_async().get(), ClientError);
+    }
+    EXPECT_EQ(group_count(), before);
+  }
+  EXPECT_EQ(client_->get_frames().size(), 2u);
 }
 
 TEST_P(Clients, DeadlinesAndClose)

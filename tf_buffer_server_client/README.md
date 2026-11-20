@@ -38,7 +38,9 @@ tf_->lookup_transform_async("odom", "base_link", rclcpp::Time(0, 0, RCL_ROS_TIME
 
 Construct with a raw node pointer, shared pointer, or `NodeInterfaces` containing
 base, graph, services, and timers interfaces. `ClientOptions` accepts an optional
-callback group and `response_margin` (default 2 seconds).
+callback group and `response_margin` (default 2 seconds). C++ clients use the
+node-owned default callback group unless you supply one. Keep supplied groups
+alive while the executor runs.
 
 With an executor spinning elsewhere, blocking calls are convenient:
 
@@ -81,9 +83,11 @@ are seconds. With an executor running elsewhere, call `tf.get_frames()` or
 The library never spins, creates a node, or starts an executor thread. Your node
 must outlive the client. Async replies and deadline callbacks need its executor.
 Blocking calls have a real-time upper bound but can still starve a single-threaded
-executor when called from a callback; use async methods there. A separate default
-client callback group permits blocking use with a multithreaded executor. C++
-callbacks can also run inline for immediate failures or `close()`; keep them short.
+executor when called from a callback; use async methods there. A separate
+callback group plus a multithreaded executor permits blocking calls from callbacks.
+For C++, supply that group explicitly through `ClientOptions`; Python creates a
+separate group by default. C++ callbacks can also run inline for immediate failures
+or `close()`; keep them short.
 
 The local response deadline is the requested server wait plus `response_margin`.
 Expired requests are removed locally; this does not cancel the server's work.

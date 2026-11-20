@@ -45,6 +45,7 @@ struct ClientOptions
 {
   // Local response deadline = server wait duration + this real-time margin.
   Duration response_margin = std::chrono::seconds(2);
+  // Defaults to the node-owned group. Keep supplied groups alive while the executor runs.
   rclcpp::CallbackGroup::SharedPtr callback_group;
 };
 

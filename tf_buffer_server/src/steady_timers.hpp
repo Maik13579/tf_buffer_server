@@ -15,7 +15,14 @@ namespace tf_buffer_server
 class SteadyTimers : public tf2_ros::CreateTimerROS
 {
 public:
+#ifdef TF_BUFFER_TIMER_NODE_INTERFACES
+  SteadyTimers(
+    rclcpp::node_interfaces::NodeBaseInterface::SharedPtr base,
+    rclcpp::node_interfaces::NodeTimersInterface::SharedPtr timers)
+  : CreateTimerROS(tf2_ros::CreateTimerROS::RequiredInterfaces(base, timers)) {}
+#else
   using CreateTimerROS::CreateTimerROS;
+#endif
   tf2_ros::TimerHandle createTimer(
     rclcpp::Clock::SharedPtr, const tf2::Duration & period,
     tf2_ros::TimerCallbackType callback) override

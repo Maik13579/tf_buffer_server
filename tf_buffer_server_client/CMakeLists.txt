@@ -10,6 +10,10 @@ endforeach()
 
 add_library(${PROJECT_NAME} SHARED src/client.cpp)
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_17)
+# Humble's client factory takes an rmw profile; Jazzy and newer accept QoS objects.
+if(rclcpp_VERSION VERSION_LESS "28.0.0")
+  target_compile_definitions(${PROJECT_NAME} PRIVATE TF_BUFFER_CLIENT_LEGACY_QOS)
+endif()
 target_include_directories(${PROJECT_NAME} PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
 target_link_libraries(${PROJECT_NAME} PUBLIC rclcpp::rclcpp ${geometry_msgs_TARGETS}
