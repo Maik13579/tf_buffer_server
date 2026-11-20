@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>tf_buffer_server_cli</name>
+  <version>0.1.0</version>
+  <description>ROS 2 CLI for TF buffer services, trees and frame completion.</description>
+  <maintainer email="maik.knof@gmx.de">Maik Knof</maintainer>
+  <license>Apache-2.0</license>
+  <build_depend>python3-setuptools</build_depend>
+  <exec_depend>python3-setuptools</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>ros2cli</exec_depend>
+  <exec_depend>tf_buffer_server_client</exec_depend>
+  <exec_depend>python3-argcomplete</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>rosidl_runtime_py</exec_depend>
+  <test_depend>python3-pytest</test_depend>
+  <test_depend>tf_buffer_server</test_depend>
+  <test_depend>geometry_msgs</test_depend>
+  <test_depend>tf2_msgs</test_depend>
+  <test_depend>ament_index_python</test_depend>
+  <test_depend>composition_interfaces</test_depend>
+  <test_depend>tf_buffer_server_interfaces</test_depend>
+  <test_depend>rclcpp_components</test_depend>
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

@@ -71,3 +71,5 @@ while active. Deactivation fails pending requests before removing endpoints.
 Reactivation clears dynamic history and preserves static TF. Cleanup releases
 all resources. Clear, shutdown, and backward ROS clock jumps/time-source changes
 also finish pending requests with an explicit status.
+
+Clients and terminal tools: [C++/Python client](tf_buffer_server_client/README.md) · [ros2 tf_buffer CLI](tf_buffer_server_cli/README.md).

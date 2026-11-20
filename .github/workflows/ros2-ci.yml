@@ -43,3 +43,10 @@ jobs:
         if: always()
         working-directory: /root/ros2_ws
         run: colcon test-result --verbose
+      - name: Check installed client and CLI
+        working-directory: /root/ros2_ws
+        shell: bash
+        run: |
+          source install/setup.bash
+          python3 -c "from tf_buffer_server_client import Client, ClientError"
+          ros2 tf_buffer --help

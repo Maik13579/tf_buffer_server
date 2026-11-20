@@ -38,7 +38,8 @@ protected:
     ns_ = "/tf_server_test_" + std::to_string(++id);
     rclcpp::NodeOptions options;
     options.arguments({"--ros-args", "-r", "__ns:=" + ns_,
-        "-r", "/tf:=" + ns_ + "/tf", "-r", "/tf_static:=" + ns_ + "/tf_static"});
+        "-r", "/tf:=" + ns_ + "/tf", "-r", "/tf_static:=" + ns_ + "/tf_static",
+        "-r", "/clock:=" + ns_ + "/clock"});
     helper_ = std::make_shared<rclcpp::Node>("client", options);
     options.append_parameter_override("requests.max_pending", 2);
     options.append_parameter_override("requests.max_timeout_seconds", 2.0);
