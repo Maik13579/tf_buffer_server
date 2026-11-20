@@ -34,12 +34,9 @@ def server_names(node):
                    if name.endswith('/get_frames') and service_type in types})
 
 
-def discover(node, executor, deadline, explicit=None):
-    explicit = ('/' + explicit.strip('/')) if explicit else None
+def discover(node, executor, deadline):
     while True:
         names = server_names(node)
-        if explicit and explicit in names:
-            return names
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             return names
@@ -47,10 +44,11 @@ def discover(node, executor, deadline, explicit=None):
 
 
 def select_server(names, explicit=None):
-    if explicit:
+    if explicit is not None:
         name = '/' + explicit.strip('/')
-        if name not in names:
-            raise ValueError(f'No active TF buffer server at {name}; check its lifecycle state')
+        if name == '/':
+            raise ValueError('Server name must be nonempty')
+        # An explicit address does not depend on the global graph snapshot.
         return name
     if not names:
         raise ValueError('No active TF buffer server found')
@@ -59,16 +57,22 @@ def select_server(names, explicit=None):
     return names[0]
 
 
-def connect(node, executor, server, deadline):
+def connect(node, executor, server, deadline, *, response_margin=None):
     from tf_buffer_server_client import Client
-    client = Client(node, server, response_margin=max(0.001, deadline - time.monotonic()))
-    while not client.is_ready():
-        remaining = deadline - time.monotonic()
-        if remaining <= 0:
-            client.close()
-            raise ValueError(f'TF buffer services unavailable at {server}')
-        executor.spin_once(timeout_sec=min(0.02, remaining))
-    return client
+    if response_margin is None:
+        response_margin = max(0.001, deadline - time.monotonic())
+    client = Client(node, server, response_margin=response_margin)
+    try:
+        while not client.is_ready():
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise ValueError(f'TF buffer services unavailable at {server}; '
+                                 'check its namespace and lifecycle state')
+            executor.spin_once(timeout_sec=min(0.02, remaining))
+        return client
+    except BaseException:
+        client.close()
+        raise
 
 
 def result(executor, future, timeout):
@@ -95,11 +99,13 @@ class FrameCompleter:
             with ros_session() as (node, executor):
                 deadline = time.monotonic() + 0.5
                 explicit = getattr(parsed_args, 'server', None)
-                names = discover(node, executor, deadline, explicit)
-                server = select_server(names, explicit)
-                # Auto-discovery uses its whole window. Reserve a separate bounded RPC budget.
-                if not explicit:
+                if explicit is None:
+                    names = discover(node, executor, deadline)
+                    server = select_server(names)
+                    # Graph discovery uses its window. Reserve a bounded RPC budget.
                     deadline = time.monotonic() + 0.3
+                else:
+                    server = select_server([], explicit)
                 with connect(node, executor, server, deadline) as client:
                     frames = result(executor, client.get_frames_async(), deadline - time.monotonic())
                     return sorted(name for name in frames if name.startswith(prefix))

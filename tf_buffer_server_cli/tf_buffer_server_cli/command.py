@@ -58,6 +58,8 @@ class TfBufferCommand(CommandExtension):
             if name == 'servers':
                 continue
             command.add_argument('--server', help='Server node path; auto-select when unique').completer = ServerCompleter()
+            command.add_argument('--service-timeout', type=positive, default=5.0,
+                                 help='Maximum wait for service readiness (default: 5 s)')
             command.add_argument('--response-margin', type=positive, default=2.0,
                                  help='Real-time response allowance beyond TF wait (default: 2 s)')
             command.add_argument('--format', choices=('text', 'yaml'), default='text')
@@ -90,8 +92,7 @@ class TfBufferCommand(CommandExtension):
 def run(args):
     from rclpy.time import Time
     from rclpy.clock import ClockType
-    from tf_buffer_server_client import Client
-    from .discovery import ros_session, discover, select_server, result
+    from .discovery import ros_session, discover, select_server, connect, result
     from .display import tree, transform_text
 
     def stamp(nanoseconds):
@@ -99,20 +100,16 @@ def run(args):
                                                      clock_type=ClockType.ROS_TIME)
 
     with ros_session() as (node, executor):
-        names = discover(node, executor, time.monotonic() + args.discovery_timeout,
-                         getattr(args, 'server', None))
+        if args.operation == 'servers' or args.server is None:
+            names = discover(node, executor, time.monotonic() + args.discovery_timeout)
+        else:
+            names = []
         if args.operation == 'servers':
             print('\n'.join(names) if names else '(no active TF buffer servers)')
             return 0
         server = select_server(names, args.server)
-        with Client(node, server, response_margin=args.response_margin) as client:
-            # New DDS clients may still need discovery after graph endpoints are visible.
-            deadline = time.monotonic() + args.discovery_timeout
-            while not client.is_ready():
-                remaining = deadline - time.monotonic()
-                if remaining <= 0:
-                    raise ValueError(f'Services unavailable at {server}; check lifecycle state')
-                executor.spin_once(timeout_sec=min(remaining, 0.02))
+        with connect(node, executor, server, time.monotonic() + args.service_timeout,
+                     response_margin=args.response_margin) as client:
 
             def get(future, wait=0.0):
                 return result(executor, future, wait + args.response_margin + 0.1)

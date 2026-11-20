@@ -28,7 +28,10 @@ ros2 tf_buffer lookup --server /robot/tf_buffer_server odom base_link
 
 `--timeout` controls the server's TF wait (default 1 second). The local response
 allowance adds `--response-margin` (default 2 seconds), measured in elapsed real
-time. `--discovery-timeout` controls graph discovery (default 1 second).
+time. `--discovery-timeout` controls graph discovery for listing or automatic server
+selection (default 1 second). An explicit `--server` skips graph enumeration and
+connects directly. `--service-timeout` bounds service readiness waiting (default
+5 seconds), separately from the response deadline.
 `echo` sends one request at a time; Ctrl-C stops it. `can` exits with 0 when
 available and 1 otherwise. Command failures print a short error on stderr.
 

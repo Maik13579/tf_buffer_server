@@ -30,6 +30,9 @@ def test_tree_and_server_selection():
     with pytest.raises(ValueError):
         tree('42')
     assert select_server(['/robot/buffer']) == '/robot/buffer'
+    assert select_server([], '/robot/buffer/') == '/robot/buffer'
+    with pytest.raises(ValueError, match='nonempty'):
+        select_server([], '/')
     with pytest.raises(ValueError, match='Multiple'):
         select_server(['/a', '/b'])
     with pytest.raises(ValueError, match='No active'):
@@ -43,6 +46,42 @@ def test_tree_and_server_selection():
     assert isinstance(next(a for a in action.choices['lookup']._actions if a.dest == 'source').completer, FrameCompleter)
     with pytest.raises(SystemExit):
         parser.parse_args(['echo', 'map', 'base', '--rate', '0'])
+
+
+def test_service_readiness_has_its_own_deadline(monkeypatch):
+    from types import SimpleNamespace
+    import tf_buffer_server_client
+    from tf_buffer_server_cli import discovery
+    clock = [0.0]
+    created = []
+
+    class FakeClient:
+        def __init__(self, node, server, response_margin):
+            self.closed = False
+            self.response_margin = response_margin
+            created.append(self)
+
+        def is_ready(self):
+            return clock[0] >= 1.5
+
+        def close(self):
+            self.closed = True
+
+    class FakeExecutor:
+        def spin_once(self, timeout_sec):
+            clock[0] += timeout_sec
+
+    monkeypatch.setattr(tf_buffer_server_client, 'Client', FakeClient)
+    monkeypatch.setattr(discovery, 'time', SimpleNamespace(monotonic=lambda: clock[0]))
+    client = discovery.connect(None, FakeExecutor(), '/buffer', 2.0, response_margin=0.25)
+    assert 1.5 <= clock[0] <= 2.0
+    assert client.response_margin == 0.25
+    assert not client.closed
+    clock[0] = 0.0
+    with pytest.raises(ValueError, match='services unavailable'):
+        discovery.connect(None, FakeExecutor(), '/buffer', 1.0)
+    assert clock[0] <= 1.0
+    assert created[-1].closed
 
 
 @pytest.fixture(scope='module')
@@ -153,9 +192,9 @@ def test_real_shell_completion(live_server):
 
 
 def test_unavailable_server_is_bounded(live_server):
-    result = cli('/does_not_exist', 'frames', '--discovery-timeout', '0.1')
+    result = cli('/does_not_exist', 'frames', '--service-timeout', '0.1')
     assert result.returncode == 1
-    assert 'No active TF buffer server' in result.stderr
+    assert 'TF buffer services unavailable' in result.stderr
 
 
 def test_echo_shutdown_and_clear(live_server):
@@ -167,8 +206,12 @@ def test_echo_shutdown_and_clear(live_server):
     try:
         with selectors.DefaultSelector() as selector:
             selector.register(proc.stdout, selectors.EVENT_READ)
-            assert selector.select(timeout=5), 'echo did not produce a transform'
-            assert 'map ← laser' in proc.stdout.readline()
+            assert selector.select(timeout=10), 'echo did not produce a transform'
+            first_line = proc.stdout.readline()
+            if not first_line:
+                _, stderr = proc.communicate(timeout=5)
+                pytest.fail(f'echo exited with code {proc.returncode}: {stderr}')
+            assert 'map ← laser' in first_line
         os.killpg(proc.pid, signal.SIGINT)
         _, stderr = proc.communicate(timeout=5)
         assert proc.returncode == 130, stderr
@@ -182,3 +225,28 @@ def test_echo_shutdown_and_clear(live_server):
     assert 'static TF preserved' in response.stdout
     assert yaml.safe_load(cli(server, 'clear', '--format', 'yaml').stdout) == {'success': True}
     assert cli(server, 'lookup', 'map', 'laser').returncode == 0
+
+
+def test_explicit_server_works_without_graph_enumeration(live_server):
+    import sys
+    server, _ = live_server
+    script = """
+import argparse
+import sys
+from tf_buffer_server_cli import discovery
+from tf_buffer_server_cli.command import TfBufferCommand
+
+def graph_unavailable(*args, **kwargs):
+    raise AssertionError('Explicit server must not require graph enumeration')
+
+discovery.discover = graph_unavailable
+parser = argparse.ArgumentParser()
+command = TfBufferCommand()
+command.add_arguments(parser, 'ros2 tf_buffer')
+args = parser.parse_args(['lookup', 'map', 'laser', '--server', sys.argv[1], '--format', 'yaml'])
+sys.exit(command.main(parser=parser, args=args))
+"""
+    response = subprocess.run([sys.executable, '-c', script, server],
+                              capture_output=True, text=True, timeout=10)
+    assert response.returncode == 0, response.stderr
+    assert yaml.safe_load(response.stdout)['transform']['translation']['x'] == 3.0
